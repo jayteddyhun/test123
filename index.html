@@ -37,7 +37,7 @@
 
         .btn-submit {
             width: 100%;
-            padding: 15px;
+            padding: 16px;
             border-radius: 8px;
             border: none;
             background: var(--accent-color);
@@ -46,10 +46,16 @@
             cursor: pointer;
             font-size: 1.1rem;
             margin-bottom: 20px;
+            transition: opacity 0.2s;
         }
 
         .btn-submit:hover {
             opacity: 0.9;
+        }
+
+        .btn-submit:disabled {
+            background: #555;
+            cursor: not-allowed;
         }
 
         .recent-box {
@@ -133,6 +139,7 @@
             display: none;
             margin-bottom: 15px;
             color: var(--accent-color);
+            font-weight: bold;
         }
     </style>
 </head>
@@ -141,9 +148,10 @@
 <div class="container">
     <h1>🔥 형님의 싹쓸이 로또 분석기</h1>
     
-    <button class="btn-submit" onclick="fetchAndGenerate()">⚡ 실시간 최신 회차 5조합 생성</button>
+    <!-- 자동 생성 제거: 생성 버튼을 눌러야만 추첨 작동 -->
+    <button id="genBtn" class="btn-submit" onclick="fetchAndGenerate()">⚡ 실시간 최신 회차 5조합 생성</button>
 
-    <div id="loading">동행복권 실시간 당첨 번호 조회 중...</div>
+    <div id="loading">로또 서버 데이터 실시간 조회 중...</div>
 
     <div id="recentBox" class="recent-box" style="display:none;">
         <div class="recent-title" id="recentTitle"></div>
@@ -154,7 +162,7 @@
 </div>
 
 <script>
-    // 오늘 날짜 기준 최근 추첨 회차 계산 함수 (2026-08-29 1239회 기준)
+    // 날짜 기반 최신 추첨 회차 구하기 (2026-08-29 1239회 기준)
     function getEstimatedLatestDraw() {
         const baseDate = new Date("2026-08-29T20:00:00+09:00");
         const baseDraw = 1239;
@@ -174,35 +182,52 @@
         return 'b-40';
     }
 
-    // CORS 프록시를 통하여 동행복권 API 실시간 데이터 수신
-    async function fetchWinningNumbers(drwNo) {
+    // CORS 교차 차단 대비 다중 프록시 시도 함수
+    async function fetchLottoData(drwNo) {
         const targetUrl = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drwNo}`;
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
         
-        const response = await fetch(proxyUrl);
-        const data = await response.json();
-        const lottoData = JSON.parse(data.contents);
+        const proxies = [
+            async (url) => {
+                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+                const data = await res.json();
+                return JSON.parse(data.contents);
+            },
+            async (url) => {
+                const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+                return await res.json();
+            },
+            async (url) => {
+                const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
+                return await res.json();
+            }
+        ];
 
-        if (lottoData.returnValue !== "success") {
-            // 해당 회차가 아직 미추첨인 경우 이전 회차 재시도
-            return fetchWinningNumbers(drwNo - 1);
+        for (const proxyFetcher of proxies) {
+            try {
+                const lottoData = await proxyFetcher(targetUrl);
+                if (lottoData && lottoData.returnValue === "success") {
+                    return {
+                        drwNo: lottoData.drwNo,
+                        drawDate: lottoData.drwNoDate,
+                        numbers: [
+                            lottoData.drwtNo1, lottoData.drwtNo2, lottoData.drwtNo3,
+                            lottoData.drwtNo4, lottoData.drwtNo5, lottoData.drwtNo6
+                        ],
+                        bonus: lottoData.bnusNo
+                    };
+                }
+            } catch (e) {
+                // 개별 우회 경로 실패 시 다음 경로 시도
+            }
         }
-
-        return {
-            drwNo: lottoData.drwNo,
-            drawDate: lottoData.drwNoDate,
-            numbers: [
-                lottoData.drwtNo1, lottoData.drwtNo2, lottoData.drwtNo3,
-                lottoData.drwtNo4, lottoData.drwtNo5, lottoData.drwtNo6
-            ],
-            bonus: lottoData.bnusNo
-        };
+        
+        throw new Error("서버 수신 실패");
     }
 
     function generateSingleCombo(recentNumbers) {
         const numbers = new Set();
         
-        // 실제 당첨 번호 중 이월수 1~2개 임의 선택
+        // 당첨 번호 중 이월수 1~2개 임의 지정
         const carryCount = Math.floor(Math.random() * 2) + 1;
         const shuffledRecent = [...recentNumbers].sort(() => 0.5 - Math.random());
         const carryNumbers = shuffledRecent.slice(0, carryCount);
@@ -244,18 +269,27 @@
     }
 
     async function fetchAndGenerate() {
+        const btn = document.getElementById('genBtn');
         const loading = document.getElementById('loading');
         const recentBox = document.getElementById('recentBox');
         const resultsDiv = document.getElementById('results');
         
+        btn.disabled = true;
         loading.style.display = 'block';
         resultsDiv.innerHTML = '';
 
         try {
-            const latestDraw = getEstimatedLatestDraw();
-            const data = await fetchWinningNumbers(latestDraw);
+            const targetDraw = getEstimatedLatestDraw();
+            let data;
             
-            // 직전회차 UI 표기 (실제 공홈 데이터 연동)
+            try {
+                data = await fetchLottoData(targetDraw);
+            } catch (err) {
+                // 최신 회차 추첨 전인 경우 직전 회차로 시도
+                data = await fetchLottoData(targetDraw - 1);
+            }
+            
+            // 직전 회차 정보 표시
             document.getElementById('recentTitle').innerHTML = 
                 `🎯 분석 기준: 직전 [${data.drwNo}회차] 당첨수 <span class="draw-date">(${data.drawDate} 추첨)</span>`;
                 
@@ -264,7 +298,7 @@
                 `<span style="margin:0 4px; color:#888;">+</span><div class="ball ${getBallClass(data.bonus)}">${data.bonus}</div>`;
             recentBox.style.display = 'block';
 
-            // 실제 당첨번호 기반 5개 조합 생성
+            // 5개 조합 생성
             for (let i = 1; i <= 5; i++) {
                 const combo = generateSingleCombo(data.numbers);
                 const text = buildAnalysisText(combo.sorted, combo.carryNumbers);
@@ -283,13 +317,13 @@
                 resultsDiv.appendChild(card);
             }
         } catch (err) {
-            alert("동행복권 실시간 데이터를 불러오는데 실패했습니다.");
+            alert("로또 공홈 데이터 조회 실패. 네트워크 상태를 확인해 주세요.");
         } finally {
             loading.style.display = 'none';
+            btn.disabled = false;
         }
     }
-
-    window.onload = fetchAndGenerate;
+    // 페이지 로드 완료 시 자동 생성 로직(window.onload)을 제거하였습니다.
 </script>
 
 </body>
