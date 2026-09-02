@@ -2,1271 +2,306 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>캔디 크러시 - 블링블링 에디션</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Noto+Sans+KR:wght@400;700;900&family=Jua&display=swap" rel="stylesheet">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>형님의 싹쓸이 로또 분석기</title>
     <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --accent-color: #ff9800;
+            --text-color: #e0e0e0;
+            --sub-text: #a0a0a0;
+        }
+
         body {
-            font-family: 'Noto Sans KR', sans-serif;
-            touch-action: manipulation;
-            user-select: none;
-            -webkit-user-select: none;
-            background: radial-gradient(circle at 50% 20%, #4a00e0 0%, #8e2de2 35%, #1f005c 100%);
-            min-height: 100vh;
-        }
-
-        .font-fredoka {
-            font-family: 'Fredoka One', cursive;
-        }
-        
-        .font-jua {
-            font-family: 'Jua', sans-serif;
-        }
-
-        /* 배경 반짝이 별 효과 */
-        .bg-sparkles {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            background-image: 
-                radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)),
-                radial-gradient(2px 2px at 40px 70px, #ffd700, rgba(0,0,0,0)),
-                radial-gradient(2px 2px at 90px 40px, #ff007f, rgba(0,0,0,0)),
-                radial-gradient(3px 3px at 160px 120px, #fff, rgba(0,0,0,0)),
-                radial-gradient(2px 2px at 230px 190px, #00ffff, rgba(0,0,0,0));
-            background-repeat: repeat;
-            background-size: 300px 300px;
-            opacity: 0.6;
-            animation: twinkle 4s ease-in-out infinite alternate;
-        }
-
-        @keyframes twinkle {
-            0% { opacity: 0.3; transform: scale(1); }
-            100% { opacity: 0.7; transform: scale(1.05); }
-        }
-
-        /* 블링블링 캔디 보드 */
-        .board-grid {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            grid-template-rows: repeat(8, 1fr);
-            gap: 6px;
-            aspect-ratio: 1 / 1;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(16px);
-            border: 4px solid rgba(255, 255, 255, 0.4);
-            border-radius: 28px;
-            box-shadow: 
-                0 0 30px rgba(236, 72, 153, 0.3),
-                0 20px 30px rgba(0, 0, 0, 0.5),
-                inset 0 0 15px rgba(255, 255, 255, 0.5);
-        }
-
-        .candy-slot {
-            position: relative;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 14px;
-            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6), 0 1px 1px rgba(255, 255, 255, 0.2);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
             display: flex;
-            align-items: center;
             justify-content: center;
-            overflow: hidden;
         }
 
-        /* 3D 입체 광택 캔디 */
-        .candy {
-            width: 90%;
-            height: 90%;
-            border-radius: 16px;
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #fff;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .controls {
             display: flex;
-            align-items: center;
-            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background: #2a2a2a;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        button {
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: none;
+            background: var(--accent-color);
+            color: #000;
+            font-weight: bold;
             cursor: pointer;
-            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.15s ease-out;
-            position: relative;
-            overflow: hidden;
+            font-size: 1rem;
         }
 
-        /* 캔디 상단 반짝이는 광택 오버레이 */
-        .candy::before {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 15%;
-            width: 70%;
-            height: 35%;
-            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.05));
-            border-radius: 20px 20px 8px 8px;
-            pointer-events: none;
+        button:hover {
+            opacity: 0.9;
         }
 
-        .candy:hover {
-            transform: scale(1.08);
+        .recent-box {
+            background: var(--card-bg);
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 25px;
         }
 
-        .candy.selected {
-            animation: blingPulse 0.8s infinite alternate;
-            transform: scale(1.12);
-            z-index: 10;
+        .recent-title {
+            font-size: 0.9rem;
+            color: var(--sub-text);
+            margin-bottom: 10px;
         }
 
-        @keyframes blingPulse {
-            0% { box-shadow: 0 0 15px #f43f5e, 0 0 30px #f43f5e, inset 0 0 10px #fff; transform: scale(1.1); }
-            100% { box-shadow: 0 0 25px #ff007f, 0 0 45px #ff007f, inset 0 0 15px #fff; transform: scale(1.18); }
+        .balls {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
         }
 
-        /* 매칭 및 폭발 애니메이션 */
-        .candy.popping {
-            animation: popBling 0.3s forwards ease-in;
-        }
-
-        .candy.exploding {
-            animation: explodeBling 0.4s forwards ease-out;
-        }
-
-        @keyframes popBling {
-            0% { transform: scale(1); opacity: 1; filter: brightness(1); }
-            50% { transform: scale(1.4); opacity: 0.9; filter: brightness(2) drop-shadow(0 0 15px #fff); }
-            100% { transform: scale(0); opacity: 0; }
-        }
-
-        @keyframes explodeBling {
-            0% { transform: scale(1); opacity: 1; filter: brightness(1); }
-            50% { transform: scale(1.8) rotate(45deg); opacity: 0.9; filter: brightness(3) drop-shadow(0 0 25px #ffd700); }
-            100% { transform: scale(0); opacity: 0; }
-        }
-
-        /* 화려한 캔디 색상 레시피 */
-        .candy-red { 
-            background: linear-gradient(135deg, #ff4e50 0%, #f9d423 100%);
-            box-shadow: 0 5px 12px rgba(255, 78, 80, 0.5), inset 0 -4px 6px rgba(0, 0, 0, 0.3);
-            border: 2px solid #ff7b7d;
-        }
-        .candy-blue { 
-            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
-            box-shadow: 0 5px 12px rgba(0, 198, 255, 0.5), inset 0 -4px 6px rgba(0, 0, 0, 0.3);
-            border: 2px solid #66d9ff;
-        }
-        .candy-green { 
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            box-shadow: 0 5px 12px rgba(56, 239, 125, 0.5), inset 0 -4px 6px rgba(0, 0, 0, 0.3);
-            border: 2px solid #7bf4ab;
-        }
-        .candy-yellow { 
-            background: linear-gradient(135deg, #ffe000 0%, #799f0c 100%);
-            box-shadow: 0 5px 12px rgba(255, 224, 0, 0.5), inset 0 -4px 6px rgba(0, 0, 0, 0.3);
-            border: 2px solid #ffea66;
-        }
-        .candy-purple { 
-            background: linear-gradient(135deg, #8a2387 0%, #e94057 50%, #f27121 100%);
-            box-shadow: 0 5px 12px rgba(233, 64, 87, 0.5), inset 0 -4px 6px rgba(0, 0, 0, 0.3);
-            border: 2px solid #f68997;
-        }
-        .candy-orange { 
-            background: linear-gradient(135deg, #ff8008 0%, #ffc837 100%);
-            box-shadow: 0 5px 12px rgba(255, 128, 8, 0.5), inset 0 -4px 6px rgba(0, 0, 0, 0.3);
-            border: 2px solid #ffb366;
-        }
-
-        /* 블링 특수 폭탄 */
-        .candy-bomb-line {
-            background: radial-gradient(circle at 35% 35%, #ffe000, #ff007f);
-            box-shadow: 0 0 15px #ff007f, inset 0 -4px 6px rgba(0, 0, 0, 0.3);
-            border: 2px solid #ffffff;
-            animation: bombBling 1s infinite alternate;
-        }
-
-        .candy-bomb-color {
-            background: conic-gradient(from 0deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3, #ff0000);
-            box-shadow: 0 0 20px #00ffff, inset 0 -4px 6px rgba(0, 0, 0, 0.3);
-            border: 2px solid #ffffff;
-            animation: spinBling 2.5s linear infinite;
-        }
-
-        @keyframes bombBling {
-            from { transform: scale(0.95); box-shadow: 0 0 10px #ff007f; }
-            to { transform: scale(1.05); box-shadow: 0 0 22px #ff007f, 0 0 35px #ffd700; }
-        }
-
-        @keyframes spinBling {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* 튀어오르는 점수 파티클 */
-        .score-float {
-            position: absolute;
-            font-family: 'Fredoka One', cursive;
-            font-size: 1.8rem;
-            background: linear-gradient(to bottom, #fff 0%, #ffd700 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(2px 2px 0px #d946ef) drop-shadow(-2px -2px 0px #d946ef);
-            pointer-events: none;
-            animation: floatUpSparkle 0.8s ease-out forwards;
-            z-index: 50;
-        }
-
-        @keyframes floatUpSparkle {
-            0% { transform: translateY(0) scale(0.6); opacity: 1; }
-            50% { transform: translateY(-25px) scale(1.3); }
-            100% { transform: translateY(-50px) scale(1); opacity: 0; }
-        }
-
-        /* 빛 입자 파티클 */
-        .sparkle-particle {
-            position: absolute;
-            width: 8px;
-            height: 8px;
+        .ball {
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background: #fff;
-            box-shadow: 0 0 10px #ffd700, 0 0 20px #ff007f;
-            pointer-events: none;
-            animation: particleFade 0.6s ease-out forwards;
-            z-index: 45;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: #fff;
         }
 
-        @keyframes particleFade {
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+        .b-1 { background-color: #fbc02d; color: #000; }
+        .b-10 { background-color: #1e88e5; }
+        .b-20 { background-color: #e53935; }
+        .b-30 { background-color: #8e24aa; }
+        .b-40 { background-color: #43a047; }
+
+        .combination-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #2a2a2a;
         }
 
-        .booster-btn.active {
-            box-shadow: 0 0 15px #f43f5e;
-            transform: scale(1.05);
-            background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
-            border-color: #f43f5e;
+        .combo-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        /* 별 등급 반짝이 애니메이션 */
-        .star-anim {
-            animation: popStarSparkle 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        .analysis {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            color: var(--sub-text);
+            background: #171717;
+            padding: 10px;
+            border-radius: 8px;
         }
 
-        @keyframes popStarSparkle {
-            0% { transform: scale(0) rotate(-90deg); filter: brightness(2); }
-            70% { transform: scale(1.3) rotate(10deg); filter: brightness(1.5); }
-            100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+        .analysis span {
+            color: var(--accent-color);
+            font-weight: bold;
         }
 
-        .moves-danger {
-            animation: dangerBling 0.8s infinite alternate;
-        }
-
-        @keyframes dangerBling {
-            0% { transform: scale(1); background: linear-gradient(135deg, #ef4444, #b91c1c); }
-            100% { transform: scale(1.1); background: linear-gradient(135deg, #f87171, #dc2626); box-shadow: 0 0 20px #ef4444; }
+        #loading {
+            text-align: center;
+            display: none;
+            margin: 20px 0;
+            color: var(--accent-color);
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 overflow-x-hidden relative">
+<body>
 
-    <!-- 반짝이는 배경 별 -->
-    <div class="bg-sparkles"></div>
-
-    <!-- 상단 헤더 -->
-    <header class="w-full max-w-md flex justify-between items-center mb-2 z-10">
-        <div class="flex items-center gap-2">
-            <i class="fa-solid font-bold text-3xl text-pink-400 fa-gem drop-shadow-[0_0_10px_rgba(244,63,94,0.8)]"></i>
-            <h1 class="text-3xl font-fredoka text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-amber-200 to-cyan-300 tracking-wider drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]">
-                CandyCrush
-            </h1>
-        </div>
-        <div class="flex items-center gap-2">
-            <!-- 레벨 뱃지 -->
-            <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-yellow-300 border border-purple-300/40 font-fredoka px-3.5 py-1 rounded-full text-sm shadow-lg flex items-center gap-1.5 drop-shadow">
-                <i class="fa-solid fa-crown text-xs text-amber-300"></i>
-                <span>LV.<span id="level-text">1</span></span>
-            </div>
-            <!-- 사운드 버튼 -->
-            <button id="sound-btn" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/40 shadow-lg flex items-center justify-center text-white hover:text-pink-300 hover:bg-white/30 transition">
-                <i class="fa-solid fa-volume-high text-lg" id="sound-icon"></i>
-            </button>
-        </div>
-    </header>
-
-    <!-- 게임 상태 및 별점 가이드 -->
-    <div class="w-full max-w-md bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 shadow-xl mb-3 z-10">
-        <div class="grid grid-cols-3 gap-2 mb-2">
-            <!-- 점수 -->
-            <div class="text-center bg-black/20 rounded-xl p-1.5 border border-white/10">
-                <span class="text-[10px] font-bold text-pink-200 uppercase tracking-wider block font-jua">SCORE</span>
-                <span id="score-text" class="text-2xl font-fredoka text-amber-300 drop-shadow">0</span>
-            </div>
-            <!-- 남은 이동 횟수 -->
-            <div id="moves-card" class="bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl p-1 text-center text-white shadow-lg flex flex-col justify-center transition-all duration-300 border border-pink-300/30">
-                <span class="text-[10px] font-bold text-pink-100 uppercase tracking-wider font-jua">MOVES LEFT</span>
-                <span id="moves-text" class="text-2xl font-fredoka leading-none mt-0.5 drop-shadow">15</span>
-            </div>
-            <!-- 목표 점수 -->
-            <div class="text-center bg-black/20 rounded-xl p-1.5 border border-white/10">
-                <span class="text-[10px] font-bold text-cyan-200 uppercase tracking-wider block font-jua">GOAL</span>
-                <span id="target-text" class="text-2xl font-fredoka text-cyan-300 drop-shadow">1500</span>
-            </div>
-        </div>
-
-        <!-- 실시간 별점 진행바 -->
-        <div class="relative pt-1">
-            <div class="flex justify-between text-[11px] font-bold text-pink-200 mb-1 px-1 font-jua">
-                <span>★ 1개</span>
-                <span>★ 2개</span>
-                <span>★ 3개 (최고)</span>
-            </div>
-            <div class="w-full bg-black/40 rounded-full h-3.5 p-0.5 relative shadow-inner overflow-hidden border border-white/20">
-                <div id="progress-bar" class="bg-gradient-to-r from-amber-300 via-pink-400 to-purple-400 h-full rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(251,191,36,0.8)]" style="width: 0%"></div>
-            </div>
-        </div>
+<div class="container">
+    <h1>🔥 형님의 싹쓸이 로또 분석기</h1>
+    
+    <div class="controls">
+        <input type="number" id="drwNoInput" placeholder="회차 입력 (미입력 시 계산)">
+        <button onclick="fetchAndGenerate()">조합 생성</button>
     </div>
 
-    <!-- 메인 게임 보드 -->
-    <main class="w-full max-w-md flex-1 flex items-center justify-center z-10">
-        <div id="board" class="board-grid w-full p-2 relative">
-            <!-- 캔디 동적 생성 -->
-        </div>
-    </main>
+    <div id="loading">동행복권 공홈 서버 연결 중...</div>
 
-    <!-- 하단 폭탄 아이템 및 컨트롤 -->
-    <footer class="w-full max-w-md mt-3 flex flex-col gap-2 z-10">
-        <div class="flex items-center justify-between bg-white/10 backdrop-blur-md rounded-2xl p-2 border border-white/20 shadow-lg">
-            <span class="text-xs font-bold text-pink-200 ml-2 font-jua">블링 부스터:</span>
-            <div class="flex gap-2">
-                <!-- 줄 폭탄 -->
-                <button id="btn-line-bomb" class="booster-btn flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold text-xs rounded-xl border border-amber-400/40 transition shadow">
-                    <i class="fa-solid fa-bomb text-amber-300"></i> 줄 폭탄 (<span id="count-line-bomb">1</span>)
-                </button>
-                <!-- 컬러 폭탄 -->
-                <button id="btn-color-bomb" class="booster-btn flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 font-bold text-xs rounded-xl border border-purple-400/40 transition shadow">
-                    <i class="fa-solid fa-compact-disc text-purple-300"></i> 컬러 폭탄 (<span id="count-color-bomb">1</span>)
-                </button>
-            </div>
-        </div>
-
-        <div class="flex gap-2">
-            <button id="restart-btn" class="flex-1 py-2.5 bg-white/20 hover:bg-white/30 active:bg-white/40 text-white font-bold text-sm rounded-xl shadow-lg border border-white/30 transition flex items-center justify-center gap-2 backdrop-blur-md font-jua">
-                <i class="fa-solid fa-rotate-right"></i> 다시 시작
-            </button>
-        </div>
-    </footer>
-
-    <!-- 결과 모달 -->
-    <div id="modal" class="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-300">
-        <div class="bg-gradient-to-b from-purple-900 to-indigo-950 border border-purple-400/40 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl transform scale-90 transition-transform duration-300 text-white" id="modal-content">
-            
-            <!-- 별 3개 연출 -->
-            <div id="modal-stars-container" class="flex justify-center gap-2 text-4xl mb-3 h-12 items-center">
-                <i id="star-1" class="fa-solid fa-star text-gray-600 transition-all duration-300"></i>
-                <i id="star-2" class="fa-solid fa-star text-gray-600 transition-all duration-300 text-5xl"></i>
-                <i id="star-3" class="fa-solid fa-star text-gray-600 transition-all duration-300"></i>
-            </div>
-
-            <h2 id="modal-title" class="text-3xl font-fredoka mb-1 tracking-wide">Stage Clear!</h2>
-            <p id="modal-message" class="text-xs text-purple-200 mb-5 font-jua">다음 레벨로 이동하여 최고 기록을 경신하세요!</p>
-            
-            <div class="bg-black/40 rounded-2xl p-4 mb-5 text-left space-y-2 border border-white/10 font-jua">
-                <div class="flex justify-between text-xs">
-                    <span class="text-purple-300">현재 스테이지</span>
-                    <span id="final-level" class="font-bold text-amber-300">Level 1</span>
-                </div>
-                <div class="flex justify-between text-xs">
-                    <span class="text-purple-300">획득 점수</span>
-                    <span id="final-score" class="font-bold text-white">0</span>
-                </div>
-                <div class="flex justify-between text-xs">
-                    <span class="text-purple-300">남은 이동 횟수</span>
-                    <span id="final-moves" class="font-bold text-pink-400">0 회</span>
-                </div>
-                <div class="flex justify-between text-xs border-t border-white/10 pt-2 mt-2">
-                    <span class="text-purple-300">클리어 보상 폭탄</span>
-                    <span id="final-reward" class="font-bold text-cyan-300">+1개</span>
-                </div>
-            </div>
-
-            <button id="modal-action-btn" class="w-full py-3.5 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white font-bold rounded-2xl shadow-xl hover:brightness-110 active:scale-95 transition font-jua text-lg border border-pink-300/40">
-                다음 레벨 시작하기
-            </button>
-        </div>
+    <div id="recentBox" class="recent-box" style="display:none;">
+        <div class="recent-title" id="recentTitle">직전 회차 당첨 번호</div>
+        <div class="balls" id="recentBalls"></div>
     </div>
 
-    <!-- 로직 및 보강된 사운드 효과음 -->
-    <script>
-        // 보강된 사운드 오디오 시스템
-        class SoundEffects {
-            constructor() {
-                this.ctx = null;
-                this.enabled = true;
-                // 콤보 음계 (도, 레, 미, 파, 솔, 라, 시, 도...)
-                this.scaleFreqs = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25];
-            }
+    <div id="results"></div>
+</div>
 
-            init() {
-                if (!this.ctx) {
-                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-            }
+<script>
+    // 날짜 기반 대략적인 최신 회차 계산 함수 (1회차: 2002-12-07 20:00 KST)
+    function getEstimatedLatestDraw() {
+        const firstDrawDate = new Date("2002-12-07T20:00:00+09:00");
+        const now = new Date();
+        const diffWeeks = Math.floor((now - firstDrawDate) / (1000 * 60 * 60 * 24 * 7));
+        return diffWeeks + 1;
+    }
 
-            // 콤보 기반 매칭 팡 효과음
-            playPop(comboCount = 1) {
-                if (!this.enabled) return;
-                this.init();
-                
-                const noteIndex = Math.min(comboCount - 1, this.scaleFreqs.length - 1);
-                const freq = this.scaleFreqs[noteIndex];
+    function getBallClass(num) {
+        if (num <= 10) return 'b-1';
+        if (num <= 20) return 'b-10';
+        if (num <= 30) return 'b-20';
+        if (num <= 40) return 'b-30';
+        return 'b-40';
+    }
 
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(freq * 1.5, this.ctx.currentTime + 0.12);
-                
-                gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
-                
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.12);
-            }
+    async function fetchWinningNumbers(drwNo) {
+        const targetUrl = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drwNo}`;
+        // CORS 문제 해결을 위한 프록시 경유
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+        
+        const response = await fetch(proxyUrl);
+        const data = await response.json();
+        const lottoData = JSON.parse(data.contents);
 
-            // 특수 폭탄 폭발음
-            playExplosion() {
-                if (!this.enabled) return;
-                this.init();
-
-                // 저음 인팩트 서브 오실레이터
-                const subOsc = this.ctx.createOscillator();
-                const subGain = this.ctx.createGain();
-                subOsc.type = 'triangle';
-                subOsc.frequency.setValueAtTime(180, this.ctx.currentTime);
-                subOsc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.35);
-                
-                subGain.gain.setValueAtTime(0.6, this.ctx.currentTime);
-                subGain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
-
-                subOsc.connect(subGain);
-                subGain.connect(this.ctx.destination);
-                subOsc.start();
-                subOsc.stop(this.ctx.currentTime + 0.35);
-
-                // 노이즈 오실레이터
-                const bufferSize = this.ctx.sampleRate * 0.35;
-                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = Math.random() * 2 - 1;
-                }
-
-                const noise = this.ctx.createBufferSource();
-                noise.buffer = buffer;
-
-                const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
-
-                noise.connect(gain);
-                gain.connect(this.ctx.destination);
-                noise.start();
-            }
-
-            // 스왑 효과음
-            playSwap() {
-                if (!this.enabled) return;
-                this.init();
-
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(400, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.08);
-
-                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
-
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.08);
-            }
-
-            // 부스터 및 버튼 터치음
-            playClick() {
-                if (!this.enabled) return;
-                this.init();
-
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(600, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(900, this.ctx.currentTime + 0.05);
-
-                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
-
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.05);
-            }
-
-            // 별 획득 청아한 연출음
-            playStar(starIndex) {
-                if (!this.enabled) return;
-                this.init();
-                const chord = [
-                    [523.25, 659.25],          // C, E
-                    [659.25, 783.99],          // E, G
-                    [783.99, 1046.50, 1318.51] // G, C, E (하이)
-                ];
-                
-                const freqs = chord[starIndex] || [523.25];
-                freqs.forEach(freq => {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.value = freq;
-                    gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start();
-                    osc.stop(this.ctx.currentTime + 0.4);
-                });
-            }
-
-            // 스테이지 클리어 승리음
-            playWin() {
-                if (!this.enabled) return;
-                this.init();
-                const notes = [523.25, 659.25, 783.99, 1046.50];
-                notes.forEach((freq, idx) => {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.frequency.value = freq;
-                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime + idx * 0.09);
-                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.09 + 0.3);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start(this.ctx.currentTime + idx * 0.09);
-                    osc.stop(this.ctx.currentTime + idx * 0.09 + 0.3);
-                });
-            }
+        if (lottoData.returnValue !== "success") {
+            throw new Error("해당 회차 데이터가 없습니다.");
         }
 
-        const sound = new SoundEffects();
-
-        // 캔디 및 폭탄 아이템 정의
-        const CANDY_TYPES = [
-            { id: 0, class: 'candy-red', icon: 'fa-heart' },
-            { id: 1, class: 'candy-blue', icon: 'fa-diamond' },
-            { id: 2, class: 'candy-green', icon: 'fa-clover' },
-            { id: 3, class: 'candy-yellow', icon: 'fa-star' },
-            { id: 4, class: 'candy-purple', icon: 'fa-moon' },
-            { id: 5, class: 'candy-orange', icon: 'fa-sun' }
-        ];
-
-        const BOMB_LINE_TYPE = 99;   // 줄 폭탄
-        const BOMB_COLOR_TYPE = 98;  // 컬러 폭탄
-
-        const BOARD_SIZE = 8;
-        let board = []; 
-        let score = 0;
-        let moves = 15;
-        let initialMoves = 15;
-        let currentLevel = 1;
-        let targetScore = 1500;
-        let isProcessing = false;
-
-        let inventory = {
-            lineBomb: 1,
-            colorBomb: 1
+        return {
+            drwNo: lottoData.drwNo,
+            numbers: [
+                lottoData.drwtNo1, lottoData.drwtNo2, lottoData.drwtNo3,
+                lottoData.drwtNo4, lottoData.drwtNo5, lottoData.drwtNo6
+            ],
+            bonus: lottoData.bnusNo
         };
+    }
 
-        let activeBoosterMode = null;
-        let selectedTile = null;
-        let dragStartTile = null;
+    function generateSingleCombo(recentNumbers, bonusNum) {
+        const numbers = new Set();
+        
+        // 1. 이월수 1~2개 선택
+        const carryCount = Math.floor(Math.random() * 2) + 1;
+        const shuffledRecent = [...recentNumbers].sort(() => 0.5 - Math.random());
+        const carryNumbers = shuffledRecent.slice(0, carryCount);
+        carryNumbers.forEach(n => numbers.add(n));
 
-        // DOM 요소
-        const boardEl = document.getElementById('board');
-        const scoreText = document.getElementById('score-text');
-        const movesText = document.getElementById('moves-text');
-        const movesCard = document.getElementById('moves-card');
-        const targetText = document.getElementById('target-text');
-        const levelText = document.getElementById('level-text');
-        const progressBar = document.getElementById('progress-bar');
-        const modal = document.getElementById('modal');
-        const modalContent = document.getElementById('modal-content');
-        const soundBtn = document.getElementById('sound-btn');
-        const soundIcon = document.getElementById('sound-icon');
-        const countLineBombEl = document.getElementById('count-line-bomb');
-        const countColorBombEl = document.getElementById('count-color-bomb');
-        const btnLineBomb = document.getElementById('btn-line-bomb');
-        const btnColorBomb = document.getElementById('btn-color-bomb');
+        // 2. 나머지 난수 채우기
+        while (numbers.size < 6) {
+            numbers.add(Math.floor(Math.random() * 45) + 1);
+        }
 
-        // 게임 초기화
-        function initGame(resetLevel = true) {
-            if (resetLevel) {
-                currentLevel = 1;
-                score = 0;
-                inventory = { lineBomb: 1, colorBomb: 1 };
-            }
+        const sorted = Array.from(numbers).sort((a, b) => a - b);
+        return { sorted, carryNumbers };
+    }
+
+    function buildAnalysisText(combo, carryNumbers, bonusNum) {
+        const sorted = combo.sorted;
+        const carryStr = carryNumbers.join(', ');
+        
+        // 특수 번호 및 구간 찾기
+        const twins = sorted.filter(n => [11, 22, 33, 44].includes(n));
+        const midSection = sorted.filter(n => n >= 20 && n <= 35);
+        const highSection = sorted.filter(n => n >= 40);
+
+        let desc = `직전 회차 당첨수 <span>${carryStr}번</span>을 이월 파동으로 굳건히 고정하고, `;
+
+        if (twins.length > 0) {
+            desc += `쌍둥이수 <span>${twins.join(', ')}번</span>을 징검다리로 삼아 `;
+        } else if (midSection.length > 0) {
+            desc += `허리 밸런스 <span>${midSection[0]}번</span>을 중심축으로 결합하여 `;
+        } else {
+            desc += `구간 밸런스 라인을 정교하게 조율하여 `;
+        }
+
+        if (highSection.length > 0) {
+            desc += `40번대 <span>${highSection.join(', ')}번</span>으로 확실하게 문을 닫은 상위 등수 저격형 조합입니다.`;
+        } else {
+            desc += `상위 등수를 싹쓸이하는 안정형 밸런스 라인업입니다.`;
+        }
+
+        return desc;
+    }
+
+    async function fetchAndGenerate() {
+        const inputVal = document.getElementById('drwNoInput').value;
+        const drwNo = inputVal ? parseInt(inputVal) : getEstimatedLatestDraw();
+        
+        const loading = document.getElementById('loading');
+        const recentBox = document.getElementById('recentBox');
+        const resultsDiv = document.getElementById('results');
+        
+        loading.style.display = 'block';
+        resultsDiv.innerHTML = '';
+
+        try {
+            const data = await fetchWinningNumbers(drwNo);
             
-            initialMoves = Math.max(10, 18 - Math.floor(currentLevel * 1.5));
-            moves = initialMoves;
-            targetScore = currentLevel * 1500;
+            // 직전회차 UI 업데이트
+            document.getElementById('recentTitle').innerText = `직전 [${data.drwNo}회차] 당첨 번호`;
+            const recentBalls = document.getElementById('recentBalls');
+            recentBalls.innerHTML = data.numbers.map(n => `<div class="ball ${getBallClass(n)}">${n}</div>`).join('') +
+                `<span style="margin:0 5px;">+</span><div class="ball ${getBallClass(data.bonus)}">${data.bonus}</div>`;
+            recentBox.style.display = 'block';
 
-            isProcessing = false;
-            selectedTile = null;
-            activeBoosterMode = null;
-            updateBoosterUI();
+            // 5개 조합 생성 및 UI 출력
+            for (let i = 1; i <= 5; i++) {
+                const combo = generateSingleCombo(data.numbers, data.bonus);
+                const analysisText = buildAnalysisText(combo, combo.carryNumbers, data.bonus);
 
-            scoreText.textContent = score;
-            movesText.textContent = moves;
-            targetText.textContent = targetScore;
-            levelText.textContent = currentLevel;
-            
-            movesCard.classList.remove('moves-danger');
-            updateProgressBar();
-
-            hideModal();
-            createBoard();
-        }
-
-        function nextLevel() {
-            currentLevel++;
-            initGame(false);
-        }
-
-        function createBoard() {
-            boardEl.innerHTML = '';
-            board = Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(null));
-
-            for (let r = 0; r < BOARD_SIZE; r++) {
-                for (let c = 0; c < BOARD_SIZE; c++) {
-                    const slot = document.createElement('div');
-                    slot.className = 'candy-slot';
-                    slot.dataset.row = r;
-                    slot.dataset.col = c;
-                    boardEl.appendChild(slot);
-
-                    let typeId;
-                    do {
-                        typeId = Math.floor(Math.random() * CANDY_TYPES.length);
-                    } while (
-                        (r >= 2 && board[r - 1][c] === typeId && board[r - 2][c] === typeId) ||
-                        (c >= 2 && board[r][c - 1] === typeId && board[r][c - 2] === typeId)
-                    );
-
-                    board[r][c] = typeId;
-                }
+                const card = document.createElement('div');
+                card.className = 'combination-card';
+                card.innerHTML = `
+                    <div class="combo-header">
+                        <span>${i}조합</span>
+                    </div>
+                    <div class="balls">
+                        ${combo.sorted.map(n => `<div class="ball ${getBallClass(n)}">${n}</div>`).join('')}
+                    </div>
+                    <div class="analysis">
+                        <strong>[분석 핵심]:</strong> ${analysisText}
+                    </div>
+                `;
+                resultsDiv.appendChild(card);
             }
-
-            renderBoard();
+        } catch (err) {
+            alert(err.message || "공홈 데이터 로딩 실패. 회차 번호를 확인해 주세요.");
+        } finally {
+            loading.style.display = 'none';
         }
+    }
 
-        function renderBoard() {
-            for (let r = 0; r < BOARD_SIZE; r++) {
-                for (let c = 0; c < BOARD_SIZE; c++) {
-                    const slot = getSlotEl(r, c);
-                    slot.innerHTML = '';
+    // 초기화 시 자동 실행
+    window.onload = () => fetchAndGenerate();
+</script>
 
-                    const typeId = board[r][c];
-                    if (typeId !== null) {
-                        const candy = document.createElement('div');
-                        
-                        if (typeId === BOMB_LINE_TYPE) {
-                            candy.className = 'candy candy-bomb-line';
-                            candy.innerHTML = `<i class="fa-solid fa-bomb text-white text-xl animate-bounce drop-shadow-[0_0_8px_rgba(255,255,255,0.9)]"></i>`;
-                        } else if (typeId === BOMB_COLOR_TYPE) {
-                            candy.className = 'candy candy-bomb-color';
-                            candy.innerHTML = `<i class="fa-solid fa-compact-disc text-white text-xl drop-shadow-[0_0_8px_rgba(255,255,255,0.9)]"></i>`;
-                        } else {
-                            const candyInfo = CANDY_TYPES[typeId];
-                            candy.className = `candy ${candyInfo.class}`;
-                            candy.innerHTML = `<i class="fa-solid ${candyInfo.icon} text-white/95 text-lg sm:text-xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]"></i>`;
-                        }
-
-                        candy.dataset.row = r;
-                        candy.dataset.col = c;
-
-                        if (selectedTile && selectedTile.r === r && selectedTile.c === c) {
-                            candy.classList.add('selected');
-                        }
-
-                        addInteractionEvents(candy, r, c);
-                        slot.appendChild(candy);
-                    }
-                }
-            }
-        }
-
-        function getSlotEl(r, c) {
-            return boardEl.children[r * BOARD_SIZE + c];
-        }
-
-        function addInteractionEvents(candyEl, r, c) {
-            candyEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (isProcessing) return;
-
-                if (activeBoosterMode) {
-                    useBoosterAt(r, c);
-                    return;
-                }
-
-                handleCandyClick(r, c);
-            });
-
-            candyEl.addEventListener('touchstart', (e) => {
-                if (isProcessing || activeBoosterMode) return;
-                const touch = e.touches[0];
-                dragStartTile = { r, c, x: touch.clientX, y: touch.clientY };
-            }, { passive: true });
-
-            candyEl.addEventListener('touchend', (e) => {
-                if (isProcessing || !dragStartTile || activeBoosterMode) return;
-                const touch = e.changedTouches[0];
-                const dx = touch.clientX - dragStartTile.x;
-                const dy = touch.clientY - dragStartTile.y;
-                const threshold = 20;
-
-                if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
-                    let targetR = dragStartTile.r;
-                    let targetC = dragStartTile.c;
-
-                    if (Math.abs(dx) > Math.abs(dy)) {
-                        targetC += dx > 0 ? 1 : -1;
-                    } else {
-                        targetR += dy > 0 ? 1 : -1;
-                    }
-
-                    if (targetR >= 0 && targetR < BOARD_SIZE && targetC >= 0 && targetC < BOARD_SIZE) {
-                        attemptSwap(dragStartTile.r, dragStartTile.c, targetR, targetC);
-                    }
-                }
-                dragStartTile = null;
-            }, { passive: true });
-        }
-
-        function handleCandyClick(r, c) {
-            sound.playClick();
-            if (!selectedTile) {
-                selectedTile = { r, c };
-                renderBoard();
-                return;
-            }
-
-            if (selectedTile.r === r && selectedTile.c === c) {
-                selectedTile = null;
-                renderBoard();
-                return;
-            }
-
-            const isAdjacent = Math.abs(selectedTile.r - r) + Math.abs(selectedTile.c - c) === 1;
-
-            if (isAdjacent) {
-                const prevR = selectedTile.r;
-                const prevC = selectedTile.c;
-                selectedTile = null;
-                attemptSwap(prevR, prevC, r, c);
-            } else {
-                selectedTile = { r, c };
-                renderBoard();
-            }
-        }
-
-        async function attemptSwap(r1, c1, r2, c2) {
-            isProcessing = true;
-            sound.playSwap();
-
-            const type1 = board[r1][c1];
-            const type2 = board[r2][c2];
-
-            if (type1 === BOMB_COLOR_TYPE || type2 === BOMB_COLOR_TYPE || type1 === BOMB_LINE_TYPE || type2 === BOMB_LINE_TYPE) {
-                swapData(r1, c1, r2, c2);
-                renderBoard();
-                decrementMoves();
-
-                await processSpecialSwap(r1, c1, r2, c2, type1, type2);
-                checkGameEnd();
-                isProcessing = false;
-                return;
-            }
-
-            swapData(r1, c1, r2, c2);
-            renderBoard();
-
-            await sleep(150);
-
-            const matchResult = findMatches();
-
-            if (matchResult.matches.length > 0) {
-                decrementMoves();
-                await processMatches(1, matchResult);
-                checkGameEnd();
-            } else {
-                swapData(r1, c1, r2, c2);
-                renderBoard();
-            }
-
-            isProcessing = false;
-        }
-
-        function decrementMoves() {
-            moves--;
-            movesText.textContent = moves;
-
-            if (moves <= 3 && moves > 0) {
-                movesCard.classList.add('moves-danger');
-            } else {
-                movesCard.classList.remove('moves-danger');
-            }
-        }
-
-        async function processSpecialSwap(r1, c1, r2, c2, type1, type2) {
-            let explodeSet = new Set();
-
-            if (type1 === BOMB_COLOR_TYPE || type2 === BOMB_COLOR_TYPE) {
-                const colorBombTile = type1 === BOMB_COLOR_TYPE ? {r: r1, c: c1} : {r: r2, c: c2};
-                const targetTile = type1 === BOMB_COLOR_TYPE ? {r: r2, c: c2} : {r: r1, c: c1};
-                const targetColor = board[targetTile.r][targetTile.c];
-
-                explodeSet.add(`${colorBombTile.r},${colorBombTile.c}`);
-                if (targetColor !== null && targetColor < 10) {
-                    for (let r = 0; r < BOARD_SIZE; r++) {
-                        for (let c = 0; c < BOARD_SIZE; c++) {
-                            if (board[r][c] === targetColor) {
-                                explodeSet.add(`${r},${c}`);
-                            }
-                        }
-                    }
-                }
-            } 
-            else if (type1 === BOMB_LINE_TYPE || type2 === BOMB_LINE_TYPE) {
-                const lineBombTile = type1 === BOMB_LINE_TYPE ? {r: r1, c: c1} : {r: r2, c: c2};
-                explodeSet.add(`${lineBombTile.r},${lineBombTile.c}`);
-                for (let i = 0; i < BOARD_SIZE; i++) {
-                    explodeSet.add(`${lineBombTile.r},${i}`);
-                    explodeSet.add(`${i},${lineBombTile.c}`);
-                }
-            }
-
-            await executeExplodeSet(explodeSet);
-        }
-
-        function swapData(r1, c1, r2, c2) {
-            const temp = board[r1][c1];
-            board[r1][c1] = board[r2][c2];
-            board[r2][c2] = temp;
-        }
-
-        function findMatches() {
-            const matchedTiles = new Set();
-            const specialBombCreations = [];
-
-            for (let r = 0; r < BOARD_SIZE; r++) {
-                for (let c = 0; c < BOARD_SIZE - 2; c++) {
-                    const type = board[r][c];
-                    if (type !== null && type < 10 && type === board[r][c + 1] && type === board[r][c + 2]) {
-                        let matchLen = 3;
-                        while (c + matchLen < BOARD_SIZE && board[r][c + matchLen] === type) {
-                            matchLen++;
-                        }
-                        for (let i = 0; i < matchLen; i++) {
-                            matchedTiles.add(`${r},${c + i}`);
-                        }
-
-                        if (matchLen === 4) {
-                            specialBombCreations.push({ r, c: c + 1, type: BOMB_LINE_TYPE });
-                        } else if (matchLen >= 5) {
-                            specialBombCreations.push({ r, c: c + 2, type: BOMB_COLOR_TYPE });
-                        }
-
-                        c += matchLen - 1;
-                    }
-                }
-            }
-
-            for (let c = 0; c < BOARD_SIZE; c++) {
-                for (let r = 0; r < BOARD_SIZE - 2; r++) {
-                    const type = board[r][c];
-                    if (type !== null && type < 10 && type === board[r + 1][c] && type === board[r + 2][c]) {
-                        let matchLen = 3;
-                        while (r + matchLen < BOARD_SIZE && board[r + matchLen][c] === type) {
-                            matchLen++;
-                        }
-                        for (let i = 0; i < matchLen; i++) {
-                            matchedTiles.add(`${r + i},${c}`);
-                        }
-
-                        if (matchLen === 4) {
-                            specialBombCreations.push({ r: r + 1, c, type: BOMB_LINE_TYPE });
-                        } else if (matchLen >= 5) {
-                            specialBombCreations.push({ r: r + 2, c, type: BOMB_COLOR_TYPE });
-                        }
-
-                        r += matchLen - 1;
-                    }
-                }
-            }
-
-            return {
-                matches: Array.from(matchedTiles).map(coord => {
-                    const [r, c] = coord.split(',').map(Number);
-                    return { r, c };
-                }),
-                bombsToCreate: specialBombCreations
-            };
-        }
-
-        async function executeExplodeSet(explodeSet) {
-            if (explodeSet.size === 0) return;
-
-            sound.playExplosion();
-            const explodeArr = Array.from(explodeSet).map(coord => {
-                const [r, c] = coord.split(',').map(Number);
-                return { r, c };
-            });
-
-            const earnedScore = explodeArr.length * 30;
-            score += earnedScore;
-            scoreText.textContent = score;
-            updateProgressBar();
-
-            explodeArr.forEach(({ r, c }) => {
-                const slot = getSlotEl(r, c);
-                const candy = slot.querySelector('.candy');
-                if (candy) candy.classList.add('exploding');
-                createSparkles(slot);
-            });
-
-            if (explodeArr.length > 0) {
-                showScoreFloat(getSlotEl(explodeArr[0].r, explodeArr[0].c), `+${earnedScore}`);
-            }
-
-            await sleep(350);
-
-            explodeArr.forEach(({ r, c }) => {
-                board[r][c] = null;
-            });
-
-            renderBoard();
-            await sleep(100);
-
-            dropCandies();
-            renderBoard();
-            await sleep(150);
-
-            fillNewCandies();
-            renderBoard();
-            await sleep(200);
-
-            const nextMatch = findMatches();
-            if (nextMatch.matches.length > 0) {
-                await processMatches(2, nextMatch);
-            }
-        }
-
-        async function processMatches(comboMultiplier = 1, matchResult = null) {
-            if (!matchResult) {
-                matchResult = findMatches();
-            }
-
-            const { matches, bombsToCreate } = matchResult;
-            if (matches.length === 0) return;
-
-            sound.playPop(comboMultiplier);
-
-            const earnedScore = matches.length * 25 * comboMultiplier;
-            score += earnedScore;
-            scoreText.textContent = score;
-            updateProgressBar();
-
-            const bombCoords = new Set(bombsToCreate.map(b => `${b.r},${b.c}`));
-
-            matches.forEach(({ r, c }) => {
-                const slot = getSlotEl(r, c);
-                const candy = slot.querySelector('.candy');
-                if (candy && !bombCoords.has(`${r},${c}`)) {
-                    candy.classList.add('popping');
-                    createSparkles(slot);
-                }
-
-                if (matches[0].r === r && matches[0].c === c) {
-                    showScoreFloat(slot, comboMultiplier > 1 ? `COMBO x${comboMultiplier}! +${earnedScore}` : `+${earnedScore}`);
-                }
-            });
-
-            await sleep(280);
-
-            matches.forEach(({ r, c }) => {
-                if (!bombCoords.has(`${r},${c}`)) {
-                    board[r][c] = null;
-                }
-            });
-
-            bombsToCreate.forEach(b => {
-                board[b.r][b.c] = b.type;
-            });
-
-            renderBoard();
-            await sleep(100);
-
-            dropCandies();
-            renderBoard();
-            await sleep(150);
-
-            fillNewCandies();
-            renderBoard();
-            await sleep(200);
-
-            await processMatches(comboMultiplier + 1);
-        }
-
-        function dropCandies() {
-            for (let c = 0; c < BOARD_SIZE; c++) {
-                let emptyRow = BOARD_SIZE - 1;
-                for (let r = BOARD_SIZE - 1; r >= 0; r--) {
-                    if (board[r][c] !== null) {
-                        if (r !== emptyRow) {
-                            board[emptyRow][c] = board[r][c];
-                            board[r][c] = null;
-                        }
-                        emptyRow--;
-                    }
-                }
-            }
-        }
-
-        function fillNewCandies() {
-            for (let r = 0; r < BOARD_SIZE; r++) {
-                for (let c = 0; c < BOARD_SIZE; c++) {
-                    if (board[r][c] === null) {
-                        board[r][c] = Math.floor(Math.random() * CANDY_TYPES.length);
-                    }
-                }
-            }
-        }
-
-        function toggleBooster(type) {
-            if (isProcessing) return;
-            sound.playClick();
-
-            if (type === 'line') {
-                if (inventory.lineBomb <= 0) return;
-                activeBoosterMode = activeBoosterMode === 'line' ? null : 'line';
-            } else if (type === 'color') {
-                if (inventory.colorBomb <= 0) return;
-                activeBoosterMode = activeBoosterMode === 'color' ? null : 'color';
-            }
-
-            selectedTile = null;
-            updateBoosterUI();
-            renderBoard();
-        }
-
-        function updateBoosterUI() {
-            countLineBombEl.textContent = inventory.lineBomb;
-            countColorBombEl.textContent = inventory.colorBomb;
-
-            btnLineBomb.classList.toggle('active', activeBoosterMode === 'line');
-            btnColorBomb.classList.toggle('active', activeBoosterMode === 'color');
-        }
-
-        async function useBoosterAt(r, c) {
-            isProcessing = true;
-
-            if (activeBoosterMode === 'line') {
-                inventory.lineBomb--;
-                board[r][c] = BOMB_LINE_TYPE;
-            } else if (activeBoosterMode === 'color') {
-                inventory.colorBomb--;
-                board[r][c] = BOMB_COLOR_TYPE;
-            }
-
-            activeBoosterMode = null;
-            updateBoosterUI();
-            renderBoard();
-
-            sound.playSwap();
-            await sleep(200);
-
-            isProcessing = false;
-        }
-
-        // 스파클 입자 생성기
-        function createSparkles(parentEl) {
-            for (let i = 0; i < 6; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'sparkle-particle';
-                const angle = Math.random() * Math.PI * 2;
-                const dist = 20 + Math.random() * 30;
-                const dx = `${Math.cos(angle) * dist}px`;
-                const dy = `${Math.sin(angle) * dist}px`;
-                particle.style.setProperty('--dx', dx);
-                particle.style.setProperty('--dy', dy);
-                particle.style.left = '50%';
-                particle.style.top = '50%';
-                parentEl.appendChild(particle);
-
-                setTimeout(() => particle.remove(), 600);
-            }
-        }
-
-        function showScoreFloat(parentEl, text) {
-            const floatEl = document.createElement('div');
-            floatEl.className = 'score-float';
-            floatEl.textContent = text;
-            parentEl.appendChild(floatEl);
-
-            setTimeout(() => {
-                floatEl.remove();
-            }, 800);
-        }
-
-        function updateProgressBar() {
-            const percentage = Math.min(100, Math.floor((score / targetScore) * 100));
-            progressBar.style.width = `${percentage}%`;
-        }
-
-        function calculateStars() {
-            if (score < targetScore) return 0;
-            const movesLeftRatio = moves / initialMoves;
-
-            if (movesLeftRatio >= 0.35 || score >= targetScore * 1.4) {
-                return 3;
-            } else if (movesLeftRatio >= 0.15 || score >= targetScore * 1.15) {
-                return 2;
-            } else {
-                return 1;
-            }
-        }
-
-        function checkGameEnd() {
-            if (score >= targetScore) {
-                showModal(true);
-            } else if (moves <= 0) {
-                showModal(false);
-            }
-        }
-
-        async function showModal(isWin) {
-            const modalTitle = document.getElementById('modal-title');
-            const modalMessage = document.getElementById('modal-message');
-            const finalScore = document.getElementById('final-score');
-            const finalLevel = document.getElementById('final-level');
-            const finalMoves = document.getElementById('final-moves');
-            const finalReward = document.getElementById('final-reward');
-            const modalActionBtn = document.getElementById('modal-action-btn');
-
-            const star1 = document.getElementById('star-1');
-            const star2 = document.getElementById('star-2');
-            const star3 = document.getElementById('star-3');
-
-            [star1, star2, star3].forEach(star => {
-                star.className = 'fa-solid fa-star text-gray-600 transition-all duration-300';
-            });
-
-            finalScore.textContent = score.toLocaleString();
-            finalLevel.textContent = `Level ${currentLevel}`;
-            finalMoves.textContent = `${moves} / ${initialMoves} 회`;
-
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                modalContent.classList.remove('scale-90');
-                modalContent.classList.add('scale-100');
-            }, 10);
-
-            if (isWin) {
-                sound.playWin();
-                const starCount = calculateStars();
-
-                modalTitle.textContent = "STAGE CLEAR!";
-                modalTitle.className = "text-3xl font-fredoka text-amber-300 mb-1 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]";
-                
-                let rewardText = "+1개 폭탄";
-                let bombReward = 1;
-
-                if (starCount === 3) {
-                    modalMessage.textContent = "완벽합니다! 별 3개 최고 등급을 획득하셨습니다! 🏆";
-                    rewardText = "+2개 폭탄 (보너스 지급)";
-                    bombReward = 2;
-                } else if (starCount === 2) {
-                    modalMessage.textContent = "훌륭합니다! 별 2개를 달성하셨습니다! ⭐";
-                    bombReward = 1;
-                } else {
-                    modalMessage.textContent = "아슬아슬 통과! 별 1개를 획득하셨습니다. 👍";
-                    bombReward = 1;
-                }
-
-                inventory.lineBomb += bombReward;
-                inventory.colorBomb += bombReward;
-                finalReward.textContent = rewardText;
-
-                modalActionBtn.textContent = "다음 레벨 도전하기";
-                modalActionBtn.onclick = () => { sound.playClick(); nextLevel(); };
-
-                const starsArr = [star1, star2, star3];
-                for (let i = 0; i < starCount; i++) {
-                    await sleep(280);
-                    starsArr[i].className = 'fa-solid fa-star text-amber-300 star-anim ' + (i === 1 ? 'text-5xl drop-shadow-[0_0_15px_rgba(251,191,36,0.9)]' : 'drop-shadow-[0_0_10px_rgba(251,191,36,0.7)]');
-                    sound.playStar(i);
-                }
-
-            } else {
-                modalTitle.textContent = "GAME OVER";
-                modalTitle.className = "text-3xl font-fredoka text-rose-400 mb-1 drop-shadow-[0_0_10px_rgba(244,63,94,0.6)]";
-                modalMessage.textContent = "이동 횟수 내에 목표 점수를 달성하지 못했습니다.";
-                finalReward.textContent = "없음";
-
-                modalActionBtn.textContent = "처음부터 다시하기";
-                modalActionBtn.onclick = () => { sound.playClick(); initGame(true); };
-            }
-        }
-
-        function hideModal() {
-            modal.classList.add('opacity-0');
-            modalContent.classList.remove('scale-100');
-            modalContent.classList.add('scale-90');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 300);
-        }
-
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
-
-        soundBtn.addEventListener('click', () => {
-            sound.enabled = !sound.enabled;
-            if (sound.enabled) {
-                soundIcon.className = 'fa-solid fa-volume-high text-lg';
-                soundBtn.classList.remove('opacity-50');
-            } else {
-                soundIcon.className = 'fa-solid fa-volume-xmark text-lg';
-                soundBtn.classList.add('opacity-50');
-            }
-        });
-
-        btnLineBomb.addEventListener('click', () => toggleBooster('line'));
-        btnColorBomb.addEventListener('click', () => toggleBooster('color'));
-        document.getElementById('restart-btn').addEventListener('click', () => { sound.playClick(); initGame(true); });
-
-        window.addEventListener('load', () => {
-            initGame(true);
-        });
-    </script>
 </body>
 </html>
-
