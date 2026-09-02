@@ -142,9 +142,9 @@
 <div class="container">
     <h1>🔥 형님의 싹쓸이 로또 분석기</h1>
     
-    <button id="genBtn" class="btn-submit" onclick="fetchAndGenerate()">⚡ 싹쓸이 5조합 생성</button>
+    <button id="genBtn" class="btn-submit" onclick="fetchAndGenerate()">⚡ 실시간 최신 회차 5조합 생성</button>
 
-    <div id="loading">데이터 분석 중...</div>
+    <div id="loading">동행복권 실시간 분석 중...</div>
 
     <div id="recentBox" class="recent-box" style="display:none;">
         <div class="recent-title" id="recentTitle"></div>
@@ -155,24 +155,15 @@
 </div>
 
 <script>
-    function getEstimatedLatestDrawInfo() {
+    function getEstimatedLatestDraw() {
         const baseDate = new Date("2026-08-29T20:00:00+09:00");
-        const baseDraw = 1238;
+        const baseDraw = 1239;
         const now = new Date();
 
         const diffTime = now - baseDate;
         const diffWeeks = diffTime > 0 ? Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7)) : 0;
-        const recentDraw = baseDraw + diffWeeks;
-        
-        const drawDateObj = new Date(baseDate.getTime() + (diffWeeks * 7 * 24 * 60 * 60 * 1000));
-        const year = drawDateObj.getFullYear();
-        const month = String(drawDateObj.getMonth() + 1).padStart(2, '0');
-        const day = String(drawDateObj.getDate()).padStart(2, '0');
 
-        return {
-            recentDraw: recentDraw,
-            recentDateStr: `${year}-${month}-${day}`
-        };
+        return baseDraw + diffWeeks;
     }
 
     function getBallClass(num) {
@@ -183,23 +174,10 @@
         return 'b-40';
     }
 
-    // 타임아웃 전용 fetch Wrapper (3초 넘어가면 취소)
-    async function fetchWithTimeout(url, timeout = 2500) {
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), timeout);
-        const response = await fetch(url, { signal: controller.signal });
-        clearTimeout(id);
-        return response;
-    }
-
-    // 빠른 수신을 위한 3초 제한 프록시 수신
-    async function fetchLottoFast(drwNo) {
-        const targetUrl = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drwNo}`;
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-        
-        const res = await fetchWithTimeout(proxyUrl, 2500);
-        const data = await res.json();
-        const lottoData = JSON.parse(data.contents);
+    // Vercel Serverless API 호출
+    async function fetchLottoServer(drwNo) {
+        const res = await fetch(`/api/lotto?drwNo=${drwNo}`);
+        const lottoData = await res.json();
 
         if (lottoData && lottoData.returnValue === "success") {
             return {
@@ -211,26 +189,10 @@
                 ],
                 bonus: lottoData.bnusNo
             };
+        } else {
+            // 이번 주 회차가 아직 미추첨 상태면 직전 회차로 자동 전환
+            return fetchLottoServer(drwNo - 1);
         }
-        throw new Error("Invalid Data");
-    }
-
-    // 백업용 난수 생성기 (지연 발생 시 0.1초 만에 실행)
-    function getFallbackData(info) {
-        const set = new Set();
-        let seed = info.recentDraw * 997;
-        while(set.size < 7) {
-            seed = (seed * 9301 + 49297) % 233280;
-            const val = Math.floor((seed / 233280) * 45) + 1;
-            set.add(val);
-        }
-        const arr = Array.from(set);
-        return {
-            drwNo: info.recentDraw,
-            drawDate: info.recentDateStr,
-            numbers: arr.slice(0, 6).sort((a, b) => a - b),
-            bonus: arr[6]
-        };
     }
 
     function generateSingleCombo(recentNumbers) {
@@ -285,45 +247,41 @@
         loading.style.display = 'block';
         resultsDiv.innerHTML = '';
 
-        const info = getEstimatedLatestDrawInfo();
-        let data;
-
         try {
-            // 2.5초 내로 공홈 데이터를 응답받지 못하면 즉시 fallback으로 전환
-            data = await fetchLottoFast(info.recentDraw);
+            const targetDraw = getEstimatedLatestDraw();
+            const data = await fetchLottoServer(targetDraw);
+
+            document.getElementById('recentTitle').innerHTML = 
+                `🎯 분석 기준: 직전 [${data.drwNo}회차] 당첨수 <span class="draw-date">(${data.drawDate} 추첨)</span>`;
+                
+            const recentBalls = document.getElementById('recentBalls');
+            recentBalls.innerHTML = data.numbers.map(n => `<div class="ball ${getBallClass(n)}">${n}</div>`).join('') +
+                `<span style="margin:0 4px; color:#888;">+</span><div class="ball ${getBallClass(data.bonus)}">${data.bonus}</div>`;
+            recentBox.style.display = 'block';
+
+            for (let i = 1; i <= 5; i++) {
+                const combo = generateSingleCombo(data.numbers);
+                const text = buildAnalysisText(combo.sorted, combo.carryNumbers);
+
+                const card = document.createElement('div');
+                card.className = 'combination-card';
+                card.innerHTML = `
+                    <div class="combo-header">${i}조합</div>
+                    <div class="balls">
+                        ${combo.sorted.map(n => `<div class="ball ${getBallClass(n)}">${n}</div>`).join('')}
+                    </div>
+                    <div class="analysis">
+                        <strong>[분석 핵심]:</strong> ${text}
+                    </div>
+                `;
+                resultsDiv.appendChild(card);
+            }
         } catch (err) {
-            data = getFallbackData(info);
+            alert("로또 데이터를 가져오는 중 오류가 발생했습니다.");
+        } finally {
+            loading.style.display = 'none';
+            btn.disabled = false;
         }
-
-        // UI 출력
-        document.getElementById('recentTitle').innerHTML = 
-            `🎯 분석 기준: 직전 [${data.drwNo}회차] 당첨수 <span class="draw-date">(${data.drawDate} 추첨)</span>`;
-            
-        const recentBalls = document.getElementById('recentBalls');
-        recentBalls.innerHTML = data.numbers.map(n => `<div class="ball ${getBallClass(n)}">${n}</div>`).join('') +
-            `<span style="margin:0 4px; color:#888;">+</span><div class="ball ${getBallClass(data.bonus)}">${data.bonus}</div>`;
-        recentBox.style.display = 'block';
-
-        for (let i = 1; i <= 5; i++) {
-            const combo = generateSingleCombo(data.numbers);
-            const text = buildAnalysisText(combo.sorted, combo.carryNumbers);
-
-            const card = document.createElement('div');
-            card.className = 'combination-card';
-            card.innerHTML = `
-                <div class="combo-header">${i}조합</div>
-                <div class="balls">
-                    ${combo.sorted.map(n => `<div class="ball ${getBallClass(n)}">${n}</div>`).join('')}
-                </div>
-                <div class="analysis">
-                    <strong>[분석 핵심]:</strong> ${text}
-                </div>
-            `;
-            resultsDiv.appendChild(card);
-        }
-
-        loading.style.display = 'none';
-        btn.disabled = false;
     }
 </script>
 
