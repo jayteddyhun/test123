@@ -45,7 +45,7 @@
             font-weight: bold;
             cursor: pointer;
             font-size: 1.1rem;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
         .btn-submit:hover {
@@ -127,6 +127,13 @@
             color: var(--accent-color);
             font-weight: bold;
         }
+
+        #loading {
+            text-align: center;
+            display: none;
+            margin-bottom: 15px;
+            color: var(--accent-color);
+        }
     </style>
 </head>
 <body>
@@ -134,7 +141,9 @@
 <div class="container">
     <h1>🔥 형님의 싹쓸이 로또 분석기</h1>
     
-    <button class="btn-submit" onclick="generateAll()">⚡ 싹쓸이 5조합 즉시 생성</button>
+    <button class="btn-submit" onclick="fetchAndGenerate()">⚡ 실시간 최신 회차 5조합 생성</button>
+
+    <div id="loading">동행복권 실시간 당첨 번호 조회 중...</div>
 
     <div id="recentBox" class="recent-box" style="display:none;">
         <div class="recent-title" id="recentTitle"></div>
@@ -145,8 +154,8 @@
 </div>
 
 <script>
-    // 회차 및 추첨일 계산 함수 (1239회차 = 2026년 8월 29일 토요일 20:00 KST 기준)
-    function getLatestDrawInfo() {
+    // 오늘 날짜 기준 최근 추첨 회차 계산 함수 (2026-08-29 1239회 기준)
+    function getEstimatedLatestDraw() {
         const baseDate = new Date("2026-08-29T20:00:00+09:00");
         const baseDraw = 1239;
         const now = new Date();
@@ -154,19 +163,7 @@
         const diffTime = now - baseDate;
         const diffWeeks = diffTime > 0 ? Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7)) : 0;
 
-        const latestDraw = baseDraw + diffWeeks;
-        
-        // 해당 회차의 추첨일 계산
-        const drawDateObj = new Date(baseDate.getTime() + (diffWeeks * 7 * 24 * 60 * 60 * 1000));
-        const year = drawDateObj.getFullYear();
-        const month = String(drawDateObj.getMonth() + 1).padStart(2, '0');
-        const day = String(drawDateObj.getDate()).padStart(2, '0');
-
-        return {
-            latestDraw: latestDraw,
-            recentDraw: latestDraw - 1, // 직전 회차
-            recentDateStr: `${year}-${month}-${day}`
-        };
+        return baseDraw + diffWeeks;
     }
 
     function getBallClass(num) {
@@ -177,26 +174,38 @@
         return 'b-40';
     }
 
-    function getVirtualRecentDraw(drwNo) {
-        const set = new Set();
-        let seed = drwNo * 997;
-        while(set.size < 7) {
-            seed = (seed * 9301 + 49297) % 233280;
-            const val = Math.floor((seed / 233280) * 45) + 1;
-            set.add(val);
+    // CORS 프록시를 통하여 동행복권 API 실시간 데이터 수신
+    async function fetchWinningNumbers(drwNo) {
+        const targetUrl = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drwNo}`;
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+        
+        const response = await fetch(proxyUrl);
+        const data = await response.json();
+        const lottoData = JSON.parse(data.contents);
+
+        if (lottoData.returnValue !== "success") {
+            // 해당 회차가 아직 미추첨인 경우 이전 회차 재시도
+            return fetchWinningNumbers(drwNo - 1);
         }
-        const arr = Array.from(set);
+
         return {
-            numbers: arr.slice(0, 6).sort((a, b) => a - b),
-            bonus: arr[6]
+            drwNo: lottoData.drwNo,
+            drawDate: lottoData.drwNoDate,
+            numbers: [
+                lottoData.drwtNo1, lottoData.drwtNo2, lottoData.drwtNo3,
+                lottoData.drwtNo4, lottoData.drwtNo5, lottoData.drwtNo6
+            ],
+            bonus: lottoData.bnusNo
         };
     }
 
-    function generateCombo(recentNumbers) {
+    function generateSingleCombo(recentNumbers) {
         const numbers = new Set();
+        
+        // 실제 당첨 번호 중 이월수 1~2개 임의 선택
         const carryCount = Math.floor(Math.random() * 2) + 1;
-        const shuffled = [...recentNumbers].sort(() => Math.random() - 0.5);
-        const carryNumbers = shuffled.slice(0, carryCount);
+        const shuffledRecent = [...recentNumbers].sort(() => 0.5 - Math.random());
+        const carryNumbers = shuffledRecent.slice(0, carryCount);
         carryNumbers.forEach(n => numbers.add(n));
 
         while (numbers.size < 6) {
@@ -234,42 +243,53 @@
         return desc;
     }
 
-    function generateAll() {
-        const info = getLatestDrawInfo();
-        const recentData = getVirtualRecentDraw(info.recentDraw);
-
-        // 상단 직전 회차 타이틀 및 추첨일 표기
-        document.getElementById('recentTitle').innerHTML = 
-            `🎯 분석 기준: 직전 [${info.recentDraw}회차] 당첨수 <span class="draw-date">(${info.recentDateStr} 추첨)</span>`;
-            
-        const recentBalls = document.getElementById('recentBalls');
-        recentBalls.innerHTML = recentData.numbers.map(n => `<div class="ball ${getBallClass(n)}">${n}</div>`).join('') +
-            `<span style="margin:0 4px; color:#888;">+</span><div class="ball ${getBallClass(recentData.bonus)}">${recentData.bonus}</div>`;
-        document.getElementById('recentBox').style.display = 'block';
-
+    async function fetchAndGenerate() {
+        const loading = document.getElementById('loading');
+        const recentBox = document.getElementById('recentBox');
         const resultsDiv = document.getElementById('results');
+        
+        loading.style.display = 'block';
         resultsDiv.innerHTML = '';
 
-        for (let i = 1; i <= 5; i++) {
-            const combo = generateCombo(recentData.numbers);
-            const text = buildAnalysisText(combo.sorted, combo.carryNumbers);
+        try {
+            const latestDraw = getEstimatedLatestDraw();
+            const data = await fetchWinningNumbers(latestDraw);
+            
+            // 직전회차 UI 표기 (실제 공홈 데이터 연동)
+            document.getElementById('recentTitle').innerHTML = 
+                `🎯 분석 기준: 직전 [${data.drwNo}회차] 당첨수 <span class="draw-date">(${data.drawDate} 추첨)</span>`;
+                
+            const recentBalls = document.getElementById('recentBalls');
+            recentBalls.innerHTML = data.numbers.map(n => `<div class="ball ${getBallClass(n)}">${n}</div>`).join('') +
+                `<span style="margin:0 4px; color:#888;">+</span><div class="ball ${getBallClass(data.bonus)}">${data.bonus}</div>`;
+            recentBox.style.display = 'block';
 
-            const card = document.createElement('div');
-            card.className = 'combination-card';
-            card.innerHTML = `
-                <div class="combo-header">${i}조합</div>
-                <div class="balls">
-                    ${combo.sorted.map(n => `<div class="ball ${getBallClass(n)}">${n}</div>`).join('')}
-                </div>
-                <div class="analysis">
-                    <strong>[분석 핵심]:</strong> ${text}
-                </div>
-            `;
-            resultsDiv.appendChild(card);
+            // 실제 당첨번호 기반 5개 조합 생성
+            for (let i = 1; i <= 5; i++) {
+                const combo = generateSingleCombo(data.numbers);
+                const text = buildAnalysisText(combo.sorted, combo.carryNumbers);
+
+                const card = document.createElement('div');
+                card.className = 'combination-card';
+                card.innerHTML = `
+                    <div class="combo-header">${i}조합</div>
+                    <div class="balls">
+                        ${combo.sorted.map(n => `<div class="ball ${getBallClass(n)}">${n}</div>`).join('')}
+                    </div>
+                    <div class="analysis">
+                        <strong>[분석 핵심]:</strong> ${text}
+                    </div>
+                `;
+                resultsDiv.appendChild(card);
+            }
+        } catch (err) {
+            alert("동행복권 실시간 데이터를 불러오는데 실패했습니다.");
+        } finally {
+            loading.style.display = 'none';
         }
     }
 
-    window.onload = generateAll;
+    window.onload = fetchAndGenerate;
 </script>
 
 </body>
