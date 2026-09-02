@@ -135,6 +135,12 @@
             color: var(--accent-color);
             font-weight: bold;
         }
+
+        .timer-text {
+            font-size: 0.85rem;
+            color: var(--sub-text);
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -144,7 +150,10 @@
     
     <button id="genBtn" class="btn-submit" onclick="fetchAndGenerate()">⚡ 실시간 최신 회차 5조합 생성</button>
 
-    <div id="loading">동행복권 실시간 분석 중...</div>
+    <div id="loading">
+        <div>⏳ 동행복권 실시간 분석 중...</div>
+        <div id="timerText" class="timer-text">(경과 시간: 0.0초)</div>
+    </div>
 
     <div id="recentBox" class="recent-box" style="display:none;">
         <div class="recent-title" id="recentTitle"></div>
@@ -155,6 +164,27 @@
 </div>
 
 <script>
+    let timerInterval = null;
+
+    function startTimer() {
+        const timerText = document.getElementById('timerText');
+        let startTime = Date.now();
+        
+        timerText.innerText = "(경과 시간: 0.0초)";
+        timerInterval = setInterval(() => {
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            timerText.innerText = `(경과 시간: ${elapsed}초)`;
+        }, 100);
+    }
+
+    function stopTimer() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    }
+
+    // 2026-08-29 = 1239회차 기준 계산
     function getEstimatedLatestDraw() {
         const baseDate = new Date("2026-08-29T20:00:00+09:00");
         const baseDraw = 1239;
@@ -174,10 +204,16 @@
         return 'b-40';
     }
 
-    // Vercel Serverless API 호출
-    async function fetchLottoServer(drwNo) {
-        const res = await fetch(`/api/lotto?drwNo=${drwNo}`);
-        const lottoData = await res.json();
+    // 브라우저 CORS 차단 완전 회피형 통신 로직
+    async function fetchLottoData(drwNo) {
+        const targetUrl = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drwNo}`;
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
+        const res = await fetch(proxyUrl);
+        const data = await res.json();
+        
+        if (!data || !data.contents) throw new Error("데이터 수신 불가");
+        const lottoData = JSON.parse(data.contents);
 
         if (lottoData && lottoData.returnValue === "success") {
             return {
@@ -190,8 +226,8 @@
                 bonus: lottoData.bnusNo
             };
         } else {
-            // 이번 주 회차가 아직 미추첨 상태면 직전 회차로 자동 전환
-            return fetchLottoServer(drwNo - 1);
+            // 해당 회차가 아직 미추첨 시 이전 회차로 이동
+            return fetchLottoData(drwNo - 1);
         }
     }
 
@@ -246,10 +282,12 @@
         btn.disabled = true;
         loading.style.display = 'block';
         resultsDiv.innerHTML = '';
+        
+        startTimer();
 
         try {
             const targetDraw = getEstimatedLatestDraw();
-            const data = await fetchLottoServer(targetDraw);
+            const data = await fetchLottoData(targetDraw);
 
             document.getElementById('recentTitle').innerHTML = 
                 `🎯 분석 기준: 직전 [${data.drwNo}회차] 당첨수 <span class="draw-date">(${data.drawDate} 추첨)</span>`;
@@ -277,8 +315,9 @@
                 resultsDiv.appendChild(card);
             }
         } catch (err) {
-            alert("로또 데이터를 가져오는 중 오류가 발생했습니다.");
+            alert("로또 데이터를 수신하는 데 실패했습니다. 잠시 후 다시 시도해 주세요.");
         } finally {
+            stopTimer();
             loading.style.display = 'none';
             btn.disabled = false;
         }
