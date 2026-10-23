@@ -2,238 +2,268 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>국회 생중계 AI 자막 실시간 모니터링</title>
 <style>
-body {
-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, 'Malgun Gothic';
-max-width: 950px;
-margin: 0 auto;
-padding: 15px;
-background: #f4f6f9;
-color: #333;
-}
-h2 { margin-top: 10px; margin-bottom: 15px; color: #0056b3; font-size: 1.4rem; }
-.card {
-background: white;
-padding: 15px;
-border-radius: 10px;
-box-shadow: 0 2px 5px rgba(0,0,0,0.08);
-margin-bottom: 15px;
-}
-label { font-weight: bold; font-size: 13px; display: block; margin-bottom: 6px; color: #495057; }
-input[type="text"] {
-width: 100%;
-padding: 10px;
-box-sizing: border-box;
-border: 1px solid #ced4da;
-border-radius: 6px;
-margin-bottom: 12px;
-font-size: 14px;
-}
-.btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
-button {
-flex: 1;
-min-width: 140px;
-padding: 12px 15px;
-border: none;
-border-radius: 6px;
-font-weight: bold;
-cursor: pointer;
-color: white;
-font-size: 14px;
-transition: background 0.2s;
-}
-.btn-connect { background: #007bff; }
-.btn-connect:hover { background: #0056b3; }
-.btn-disconnect { background: #dc3545; }
-.btn-disconnect:hover { background: #bd2130; }
-.btn-csv { background: #28a745; }
-.btn-csv:hover { background: #1e7e34; }
-#status { font-weight: bold; padding: 6px 12px; border-radius: 20px; display: inline-block; font-size: 12px; margin-bottom: 12px; }
-.status-disconnected { background: #e2e3e5; color: #383d41; }
-.status-connected { background: #d4edda; color: #155724; }
-#log-container {
-height: 420px;
-background: #1e1e1e;
-color: #d4d4d4;
-font-family: 'Consolas', 'Courier New', monospace;
-font-size: 13px;
-padding: 12px;
-border-radius: 8px;
-overflow-y: auto;
-white-space: pre-wrap;
-line-height: 1.6;
--webkit-overflow-scrolling: touch;
-}
-.log-alert { color: #ff6b6b; font-weight: bold; background: rgba(255, 107, 107, 0.12); display: block; padding: 6px 8px; border-radius: 4px; margin: 4px 0; border-left: 3px solid #ff6b6b; }
-.log-speaker { color: #4dabf7; font-weight: bold; }
+  :root { color-scheme: light dark; }
+  * { -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    max-width: 950px;
+    margin: 0 auto;
+    padding: 15px;
+    padding-top: max(15px, env(safe-area-inset-top));
+    padding-bottom: max(15px, env(safe-area-inset-bottom));
+    background: #f4f6f9;
+    color: #333;
+  }
+  h2 { margin: 8px 0 15px; color: #0056b3; font-size: 1.25rem; }
+  .card {
+    background: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    margin-bottom: 15px;
+  }
+  label { font-weight: bold; font-size: 13px; display: block; margin-bottom: 6px; color: #495057; }
+  input[type="text"] {
+    width: 100%;
+    padding: 11px;
+    box-sizing: border-box;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    font-size: 16px; /* iOS에서 16px 미만이면 자동 확대됨 - 방지 */
+  }
+  .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+  button {
+    flex: 1;
+    min-width: 140px;
+    padding: 14px 15px;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #fff;
+    font-size: 15px;
+  }
+  .btn-connect { background: #007bff; }
+  .btn-disconnect { background: #dc3545; }
+  .btn-csv { background: #28a745; }
+  #status {
+    font-weight: bold;
+    padding: 6px 12px;
+    border-radius: 20px;
+    display: inline-block;
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+  .status-disconnected { background: #e2e3e5; color: #383d41; }
+  .status-connected { background: #d4edda; color: #155724; }
+  .status-connecting { background: #fff3cd; color: #856404; }
+  #log-container {
+    height: 55vh;
+    min-height: 300px;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    padding: 12px;
+    border-radius: 8px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+    -webkit-overflow-scrolling: touch;
+  }
+  .log-alert {
+    color: #ff6b6b;
+    font-weight: bold;
+    background: rgba(255, 107, 107, 0.12);
+    display: block;
+    padding: 6px 8px;
+    border-radius: 4px;
+    margin: 4px 0;
+    border-left: 3px solid #ff6b6b;
+  }
+  .log-sys { color: #888; }
 </style>
 </head>
 <body>
-<h2>🎙️ 국회 생중계 AI 자막 실시간 모니터링</h2>
+<h2>🎙️ 국회 생중계 AI 자막 모니터링</h2>
+
 <div class="card">
-<label>시청 중인 국회 웹캐스트 회의 페이지 주소 (URL)</label>
-<input type="text" id="target-url" value="https://assembly.webcast.go.kr/main/player.asp?xcode=56&xcgcd=DCM00005622439A201&">
-<label>오늘 회의 참석 위원 명단 (화이트리스트, 쉼표로 구분)</label>
-<input type="text" id="whitelist-input" value="김철수 의원, 이영희 의원, 박민수 위원장, 정구기 위원, 홍길동 의원">
-<label>감지 키워드 (쉼표로 구분)</label>
-<input type="text" id="keywords-input" value="앱마켓, 플랫폼, 과징금, 구글, 애플, 출장">
-<div>
-<span id="status" class="status-disconnected">🔴 연결 끊김</span>
+  <label>자막 소켓 주소 (상임위마다 경로가 다름: .../aistt/____/hls)</label>
+  <input type="text" id="ws-url" value="wss://smiai.webcast.go.kr:8091/aistt/gwabang/hls">
+
+  <label>감지 키워드 (쉼표로 구분)</label>
+  <input type="text" id="keywords-input" value="앱 마켓, 플랫폼, 과징금, 구글, 애플, 인앱결제, 수수료">
+
+  <div>
+    <span id="status" class="status-disconnected">🔴 연결 끊김</span>
+  </div>
+  <div class="btn-group">
+    <button id="btn-toggle" class="btn-connect">모니터링 시작</button>
+    <button id="btn-csv" class="btn-csv">📥 CSV 다운로드</button>
+  </div>
 </div>
-<div class="btn-group">
-<button id="btn-toggle" class="btn-connect" onclick="toggleConnection()">모니터링 시작</button>
-<button id="btn-csv" class="btn-csv" onclick="downloadCSV()">📥 전체 회의록 CSV 다운로드</button>
-</div>
-</div>
+
 <div class="card">
-<label>실시간 자막 및 발언자/키워드 감지 로그</label>
-<div id="log-container">대기 중... [모니터링 시작] 버튼을 누르면 자막을 수신합니다.</div>
+  <label>실시간 자막 / 키워드 감지 로그</label>
+  <div id="log-container">대기 중... [모니터링 시작]을 누르면 자막을 수신합니다.</div>
 </div>
+
 <script>
-let ws = null;
-let collectedData = [];
-let recentLogBuffer = [];
-let lastTranscript = "";
-function logMessage(text, isAlert = false) {
-const container = document.getElementById('log-container');
-if (container.innerText.startsWith("대기 중...")) {
-container.innerText = "";
-}
-const timeStr = new Date().toLocaleTimeString();
-if (isAlert) {
-container.innerHTML += ⁠<span class="log-alert">[${timeStr}] 🚨 ${text}</span>\n⁠;
-} else {
-container.innerText += ⁠[${timeStr}] ${text}\n⁠;
-}
-container.scrollTop = container.scrollHeight;
-}
-function extractWebSocketUrl(rawUrl) {
-try {
-const urlObj = new URL(rawUrl);
-const xcgcd = urlObj.searchParams.get("xcgcd");
-if (xcgcd) {
-return ⁠wss://smiai.webcast.go.kr:8091/aistt/gwabang/hls?xcgcd=${xcgcd}⁠;
-}
-} catch (e) {
-console.error("URL 파싱 오류", e);
-}
-return "wss://smiai.webcast.go.kr:8091/aistt/gwabang/hls";
-}
-// 🎯 참석자 명단(화이트리스트) 기반 발언자 매칭 엔진
-function matchSpeakerFromWhitelist(transcript) {
-const whitelistInput = document.getElementById('whitelist-input').value;
-const lawmakers = whitelistInput.split(',').map(name => name.trim()).filter(name => name);
-let matchedSpeakers = [];
-lawmakers.forEach(lawmaker => {
-const nameOnly = lawmaker.replace(/\s*(의원|위원|위원장|님)/g, "").trim();
-if (transcript.includes(nameOnly)) {
-// 단순 인용 문구 예외 처리 (~이, ~가, ~의 등)
-const isCited = transcript.includes(lawmaker + "이") ||
-transcript.includes(lawmaker + "가") ||
-transcript.includes(lawmaker + "의") ||
-transcript.includes(lawmaker + "처럼") ||
-transcript.includes(lawmaker + "듯이");
-if (!isCited && !matchedSpeakers.includes(lawmaker)) {
-matchedSpeakers.push(lawmaker);
-}
-}
-});
-return matchedSpeakers;
-}
-function toggleConnection() {
-if (ws && ws.readyState === WebSocket.OPEN) {
-ws.close();
-return;
-}
-const inputUrl = document.getElementById('target-url').value.trim();
-const wsUrl = extractWebSocketUrl(inputUrl);
-logMessage(⁠연결 대상 세션 분석 중...⁠);
-logMessage(⁠접속 주소: ${wsUrl}⁠);
-ws = new WebSocket(wsUrl);
-ws.onopen = () => {
-document.getElementById('status').className = "status-connected";
-document.getElementById('status').innerText = "🟢 실시간 수신 중";
-document.getElementById('btn-toggle').className = "btn-disconnect";
-document.getElementById('btn-toggle').innerText = "모니터링 중지";
-logMessage("웹소켓 세션 연결 성공! 자막 수신을 시작합니다.");
-};
-ws.onmessage = (event) => {
-try {
-const data = JSON.parse(event.data);
-const transcript = (data.transcript || "").trim();
-if (!transcript || data.final === false) return;
-// 중복 문장 필터링
-if (transcript === lastTranscript) return;
-lastTranscript = transcript;
-const timeStr = new Date().toLocaleTimeString();
-// 1. 참석자 화이트리스트 기반 발언자 추출
-const lawmakerMatches = matchSpeakerFromWhitelist(transcript);
-// 2. 키워드 검사
-const kwInput = document.getElementById('keywords-input').value;
-const keywords = kwInput.split(',').map(k => k.trim()).filter(k => k);
-let matchedKeywords = [];
-keywords.forEach(kw => {
-if (transcript.includes(kw)) matchedKeywords.push(kw);
-});
-// 3. 라벨링 및 알림 처리
-let tagLabel = '일반';
-let isAlert = false;
-let displayPrefix = "";
-if (lawmakerMatches.length > 0 && matchedKeywords.length > 0) {
-tagLabel = ⁠${lawmakerMatches.join(', ')} / [키워드: ${matchedKeywords.join(', ')}]⁠;
-isAlert = true;
-displayPrefix = ⁠👤 [발언자: ${lawmakerMatches.join(', ')}] 🚨 [키워드 감지]⁠;
-} else if (lawmakerMatches.length > 0) {
-tagLabel = lawmakerMatches.join(', ');
-displayPrefix = ⁠👤 [발언자: ${lawmakerMatches.join(', ')}]⁠;
-} else if (matchedKeywords.length > 0) {
-tagLabel = ⁠키워드: ${matchedKeywords.join(', ')}⁠;
-isAlert = true;
-displayPrefix = ⁠🚨 [키워드 감지: ${matchedKeywords.join(', ')}]⁠;
-} else {
-displayPrefix = transcript;
-}
-// 수신 데이터 저장
-const entry = { time: timeStr, keyword: tagLabel, text: transcript };
-collectedData.push(entry);
-// 화면 출력
-if (isAlert || lawmakerMatches.length > 0) {
-logMessage(⁠${displayPrefix}\n💬 내용: ${transcript}⁠, true);
-} else {
-logMessage(transcript);
-}
-} catch (e) {}
-};
-ws.onerror = () => {
-logMessage("⚠️ 웹소켓 오류 발생 (URL 또는 네트워크 상태를 확인하세요)");
-};
-ws.onclose = () => {
-document.getElementById('status').className = "status-disconnected";
-document.getElementById('status').innerText = "🔴 연결 끊김";
-document.getElementById('btn-toggle').className = "btn-connect";
-document.getElementById('btn-toggle').innerText = "모니터링 시작";
-logMessage("웹소켓 연결이 종료되었습니다.");
-};
-}
-function downloadCSV() {
-if (collectedData.length === 0) {
-alert("다운로드할 데이터가 없습니다.");
-return;
-}
-let csvContent = "\uFEFF시간,키워드/발언자,발언내용\n";
-collectedData.forEach(row => {
-let cleanText = row.text.replace(/"/g, '""');
-csvContent += ⁠"${row.time}","${row.keyword}","${cleanText}"\n⁠;
-});
-const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-const url = URL.createObjectURL(blob);
-const a = document.createElement('a');
-a.href = url;
-a.download = ⁠국감회의록_${new Date().toISOString().slice(0,10)}.csv⁠;
-a.click();
-}
+  let ws = null;
+  let collectedData = [];
+  let lastTranscript = "";
+  let manualClose = false;
+
+  const $ = (id) => document.getElementById(id);
+
+  // ---- 유사매칭용 정규화: 공백/조사/특수문자 제거 ----
+  function normalize(s) {
+    return (s || "").replace(/[^가-힣a-zA-Z0-9]/g, "").toLowerCase();
+  }
+
+  function logMessage(text, cls) {
+    const container = $('log-container');
+    if (container.dataset.cleared !== "1") {
+      container.innerText = "";
+      container.dataset.cleared = "1";
+    }
+    const t = new Date().toLocaleTimeString();
+    if (cls === "alert") {
+      const span = document.createElement("span");
+      span.className = "log-alert";
+      span.textContent = "[" + t + "] 🔴 " + text;
+      container.appendChild(span);
+    } else if (cls === "sys") {
+      const span = document.createElement("span");
+      span.className = "log-sys";
+      span.textContent = "[" + t + "] " + text + "\n";
+      container.appendChild(span);
+    } else {
+      container.appendChild(document.createTextNode("[" + t + "] " + text + "\n"));
+    }
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function setStatus(cls, text) {
+    const s = $('status');
+    s.className = cls;
+    s.innerText = text;
+  }
+
+  function startConnection() {
+    const wsUrl = $('ws-url').value.trim();
+    if (!wsUrl.startsWith("wss://") && !wsUrl.startsWith("ws://")) {
+      logMessage("주소는 wss:// 로 시작해야 합니다.", "sys");
+      return;
+    }
+
+    manualClose = false;
+    setStatus("status-connecting", "🟡 연결 시도 중...");
+    logMessage("접속: " + wsUrl, "sys");
+
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch (e) {
+      logMessage("연결 생성 실패: " + e.message, "sys");
+      setStatus("status-disconnected", "🔴 연결 끊김");
+      return;
+    }
+
+    ws.onopen = () => {
+      setStatus("status-connected", "🟢 실시간 수신 중");
+      $('btn-toggle').className = "btn-disconnect";
+      $('btn-toggle').innerText = "모니터링 중지";
+      logMessage("연결 성공! 자막 수신 시작.", "sys");
+    };
+
+    ws.onmessage = (event) => {
+      let data;
+      try { data = JSON.parse(event.data); } catch (e) { return; }
+
+      const transcript = (data.transcript || "").trim();
+      if (!transcript) return;
+      if (data.final === false) return;          // 확정 문장만
+      if (transcript === lastTranscript) return; // 바로 앞과 같으면 중복
+      lastTranscript = transcript;
+
+      // 키워드 검사 (유사매칭)
+      const kwInput = $('keywords-input').value;
+      const keywords = kwInput.split(',').map(k => k.trim()).filter(k => k);
+      const normText = normalize(transcript);
+      const matched = keywords.filter(kw => {
+        const nk = normalize(kw);
+        return nk && normText.includes(nk);
+      });
+
+      const timeStr = new Date().toLocaleTimeString();
+      collectedData.push({
+        time: timeStr,
+        keyword: matched.join(' '),
+        text: transcript
+      });
+
+      if (matched.length > 0) {
+        logMessage("[" + matched.join(', ') + "]\n   " + transcript, "alert");
+      } else {
+        logMessage(transcript);
+      }
+    };
+
+    ws.onerror = () => {
+      logMessage("⚠️ 웹소켓 오류. (아이폰에서는 국회 서버 인증서 문제로 막힐 수 있습니다)", "sys");
+    };
+
+    ws.onclose = () => {
+      setStatus("status-disconnected", "🔴 연결 끊김");
+      $('btn-toggle').className = "btn-connect";
+      $('btn-toggle').innerText = "모니터링 시작";
+      if (!manualClose) {
+        logMessage("연결 종료됨. 3초 뒤 재연결 시도...", "sys");
+        setTimeout(() => { if (!manualClose) startConnection(); }, 3000);
+      } else {
+        logMessage("연결을 중지했습니다.", "sys");
+      }
+    };
+  }
+
+  function toggleConnection() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      manualClose = true;
+      ws.close();
+      return;
+    }
+    startConnection();
+  }
+
+  function downloadCSV() {
+    if (collectedData.length === 0) {
+      alert("다운로드할 데이터가 없습니다.");
+      return;
+    }
+    let csv = "\uFEFF시간,키워드,발언내용\n";
+    collectedData.forEach(row => {
+      const text = (row.text || "").replace(/"/g, '""');
+      const kw = (row.keyword || "").replace(/"/g, '""');
+      csv += '"' + row.time + '","' + kw + '","' + text + '"\n';
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "국감회의록_" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  // 이벤트 연결 (onclick 속성 대신 - 더 안정적)
+  $('btn-toggle').addEventListener('click', toggleConnection);
+  $('btn-csv').addEventListener('click', downloadCSV);
 </script>
 </body>
 </html>
